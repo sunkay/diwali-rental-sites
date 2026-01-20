@@ -22,6 +22,119 @@
     });
   }
 
+  // Modal booking experience
+  function computeEmbedUrl(url) {
+    if (!url) return '';
+    try {
+      // If docs.google.com form, ensure embedded=true
+      if (url.indexOf('docs.google.com/forms') !== -1) {
+        // Normalize to /viewform
+        if (url.indexOf('/viewform') === -1) {
+          // Some links end with /viewform?usp=sf_link
+          // Leave as-is if not found; Google will redirect.
+        }
+        if (url.indexOf('embedded=true') === -1) {
+          return url + (url.indexOf('?') === -1 ? '?' : '&') + 'embedded=true';
+        }
+      }
+      // For forms.gle short links, return as-is (Google will redirect to embeddable target)
+      return url;
+    } catch (_) { return url; }
+  }
+
+  function initBookingModal(cfg) {
+    var formUrl = cfg.formUrl;
+    var hasForm = !!formUrl && !/your-booking-form-placeholder/i.test(formUrl);
+    var ctas = document.querySelectorAll('.js-book-btn');
+    if (!ctas.length) return;
+
+    // Build modal once
+    var backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.setAttribute('aria-hidden', 'true');
+    backdrop.style.display = 'none';
+
+    var modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    var titleId = 'modal-title-' + Math.random().toString(36).slice(2);
+    modal.setAttribute('aria-labelledby', titleId);
+
+    var header = document.createElement('div');
+    header.className = 'modal-header';
+    var title = document.createElement('h2');
+    title.className = 'modal-title';
+    title.id = titleId;
+    title.textContent = 'Request to Book' + (cfg.propertyName ? ' — ' + cfg.propertyName : '');
+    var close = document.createElement('button');
+    close.className = 'modal-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close booking dialog');
+    close.textContent = '✕';
+    header.appendChild(title); header.appendChild(close);
+
+    var body = document.createElement('div');
+    body.className = 'modal-body';
+    var iframe = document.createElement('iframe');
+    iframe.className = 'modal-iframe';
+    iframe.setAttribute('title', 'Booking form');
+    if (hasForm) iframe.src = computeEmbedUrl(formUrl);
+    var loader = document.createElement('div');
+    loader.style.display = 'grid';
+    loader.style.placeItems = 'center';
+    loader.style.height = '50vh';
+    loader.innerHTML = '<div class="muted">Loading form…</div>';
+    body.appendChild(loader);
+    body.appendChild(iframe);
+    iframe.addEventListener('load', function(){ loader.style.display = 'none'; });
+
+    var footer = document.createElement('div');
+    footer.className = 'modal-footer';
+    var note = document.createElement('div');
+    note.className = 'modal-note';
+    note.textContent = 'Payments are currently cash or check only. A booking is not confirmed until we review and follow up.';
+    var openNew = document.createElement('a');
+    openNew.href = hasForm ? formUrl : 'book.html';
+    openNew.target = '_blank';
+    openNew.rel = 'noopener noreferrer';
+    openNew.className = 'link';
+    openNew.textContent = 'Open full form';
+    footer.appendChild(note); footer.appendChild(openNew);
+
+    modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    function openModal() {
+      if (!hasForm) { window.location.href = 'book.html'; return; }
+      backdrop.style.display = 'grid';
+      backdrop.removeAttribute('aria-hidden');
+      document.body.classList.add('modal-open');
+      // Focus close for accessibility
+      close.focus();
+      document.addEventListener('keydown', onKey);
+      backdrop.addEventListener('click', onBackdrop);
+    }
+    function closeModal() {
+      document.body.classList.remove('modal-open');
+      backdrop.style.display = 'none';
+      backdrop.setAttribute('aria-hidden', 'true');
+      document.removeEventListener('keydown', onKey);
+      backdrop.removeEventListener('click', onBackdrop);
+    }
+    function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); closeModal(); } }
+    function onBackdrop(e) { if (e.target === backdrop) { closeModal(); } }
+    close.addEventListener('click', closeModal);
+
+    ctas.forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        openModal();
+      });
+    });
+  }
+
   function activateNav() {
     var path = location.pathname.split('/').pop() || 'index.html';
     document.querySelectorAll('nav a').forEach(function (a) {
@@ -67,6 +180,7 @@
     wireContact(cfg.email);
     activateNav();
     wireMobileNav();
+    initBookingModal(cfg);
 
     // Simple fade carousel for feature images if configured in CONFIG.carousels
     function initFadeCarousel(imgEl, images, intervalMs) {
