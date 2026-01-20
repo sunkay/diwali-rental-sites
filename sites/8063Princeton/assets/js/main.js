@@ -14,11 +14,11 @@
   function wireCTAs(formUrl) {
     var ctas = document.querySelectorAll('.js-book-btn');
     ctas.forEach(function (btn) {
-      if (formUrl) {
-        btn.setAttribute('href', formUrl);
-        btn.setAttribute('target', '_blank');
-        btn.setAttribute('rel', 'noopener noreferrer');
-      }
+      // Always point CTAs to local book.html for a stable entry point.
+      // book.html will redirect to CONFIG.formUrl or show a fallback.
+      btn.setAttribute('href', 'book.html');
+      btn.removeAttribute('target');
+      btn.removeAttribute('rel');
     });
   }
 

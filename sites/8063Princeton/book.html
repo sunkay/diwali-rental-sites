@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Request to Book</title>
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <script defer src="assets/js/config.js"></script>
+    <style>
+      :root { color-scheme: light dark; }
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+      .wrap { max-width: 720px; margin: 10vh auto; padding: 0 24px; }
+      .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); overflow: hidden; }
+      .card-body { padding: 20px; }
+      .muted { color: #6b7280; }
+      .btn { display: inline-block; padding: 12px 16px; border-radius: 999px; font-weight: 600; border: 1px solid #e5e7eb; text-decoration: none; }
+      .btn-primary { background: #111827; color: #fff; border-color: transparent; }
+      .center { text-align: center; }
+    </style>
+    <script>
+      (function(){
+        function go(url){ try { window.location.replace(url); } catch(_) { window.location.href = url; } }
+        function isPlaceholder(u){ return !u || /your-booking-form-placeholder/i.test(u); }
+        document.addEventListener('DOMContentLoaded', function(){
+          var cfg = window.CONFIG || {};
+          var url = cfg.formUrl;
+          if (url && !isPlaceholder(url)) {
+            go(url);
+          } else {
+            // Show fallback content; filled by script below
+            document.getElementById('fallback').hidden = false;
+            var email = cfg.email;
+            if (email) {
+              var subject = encodeURIComponent('Booking Request — ' + (cfg.propertyName || 'Property'));
+              var body = encodeURIComponent('Name:\nEmail:\nPhone:\nCheck-in:\nCheck-out:\nGuests:\nMessage:\n');
+              var href = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
+              document.getElementById('mailto').setAttribute('href', href);
+              document.getElementById('emailText').textContent = email;
+            } else {
+              document.getElementById('emailRow').hidden = true;
+            }
+          }
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div id="fallback" class="card" hidden>
+        <div class="card-body">
+          <h1 class="center">Booking Link Not Configured</h1>
+          <p class="center muted">We couldn't find a booking form link. Please try contacting us directly or try again later.</p>
+          <div class="center" id="emailRow">
+            <a id="mailto" class="btn btn-primary" href="#">Contact via Email</a>
+            <p class="muted">Email: <span id="emailText"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+
