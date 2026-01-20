@@ -71,27 +71,80 @@
     // Simple fade carousel for feature images if configured in CONFIG.carousels
     function initFadeCarousel(imgEl, images, intervalMs) {
       if (!imgEl || !images || images.length === 0) return;
-      var idx = 0;
-      var next = function () {
-        idx = (idx + 1) % images.length;
+      var idx = 0, timer = null, speed = intervalMs || (window.CONFIG && window.CONFIG.carouselSpeedMs) || 3500;
+
+      // Build minimal UI: wrap, controls, dots
+      var wrapper = document.createElement('div');
+      wrapper.className = 'carousel';
+      var parent = imgEl.parentNode;
+      parent.insertBefore(wrapper, imgEl);
+      wrapper.appendChild(imgEl);
+
+      var prevBtn = document.createElement('button');
+      prevBtn.className = 'ctrl prev';
+      prevBtn.type = 'button';
+      prevBtn.setAttribute('aria-label', 'Previous image');
+      prevBtn.textContent = '‹';
+
+      var nextBtn = document.createElement('button');
+      nextBtn.className = 'ctrl next';
+      nextBtn.type = 'button';
+      nextBtn.setAttribute('aria-label', 'Next image');
+      nextBtn.textContent = '›';
+
+      var dots = document.createElement('div');
+      dots.className = 'dots';
+      var dotEls = images.map(function (_, i) {
+        var d = document.createElement('span');
+        d.className = 'dot' + (i === 0 ? ' active' : '');
+        d.setAttribute('aria-label', 'Go to image ' + (i + 1));
+        d.setAttribute('role', 'button');
+        d.tabIndex = 0;
+        dots.appendChild(d);
+        return d;
+      });
+
+      wrapper.appendChild(prevBtn);
+      wrapper.appendChild(nextBtn);
+      wrapper.appendChild(dots);
+
+      function setActive(i) {
+        dotEls.forEach(function (el, j) { el.classList.toggle('active', j === i); });
+      }
+
+      function show(i) {
+        idx = (i + images.length) % images.length;
         var nextSrc = images[idx];
-        // Fade out
         imgEl.style.opacity = '0';
         var temp = new Image();
         temp.onload = function () {
           imgEl.src = nextSrc;
-          // Slight delay to ensure style application
           requestAnimationFrame(function(){ imgEl.style.opacity = '1'; });
+          setActive(idx);
         };
         temp.src = nextSrc;
-      };
-      // Set initial state
+      }
+
+      function start() { stop(); timer = setInterval(function(){ show(idx + 1); }, speed); }
+      function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+      // Wire controls
+      prevBtn.addEventListener('click', function(){ show(idx - 1); start(); });
+      nextBtn.addEventListener('click', function(){ show(idx + 1); start(); });
+      dotEls.forEach(function (d, i) {
+        d.addEventListener('click', function(){ show(i); start(); });
+        d.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); show(i); start(); } });
+      });
+
+      wrapper.addEventListener('mouseenter', stop);
+      wrapper.addEventListener('mouseleave', start);
+
+      // Initial state
       imgEl.classList.add('fade-img');
       imgEl.style.opacity = '1';
-      // Ensure first image is from list
       if (images[0]) imgEl.src = images[0];
-      // Start rotation
-      setInterval(next, intervalMs || 3500);
+      setActive(0);
+      start();
     }
 
     // Feature images on Home using Option A: assets/img/featured/{key}.webp
