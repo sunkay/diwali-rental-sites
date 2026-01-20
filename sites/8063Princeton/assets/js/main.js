@@ -68,11 +68,49 @@
     activateNav();
     wireMobileNav();
 
+    // Simple fade carousel for feature images if configured in CONFIG.carousels
+    function initFadeCarousel(imgEl, images, intervalMs) {
+      if (!imgEl || !images || images.length === 0) return;
+      var idx = 0;
+      var next = function () {
+        idx = (idx + 1) % images.length;
+        var nextSrc = images[idx];
+        // Fade out
+        imgEl.style.opacity = '0';
+        var temp = new Image();
+        temp.onload = function () {
+          imgEl.src = nextSrc;
+          // Slight delay to ensure style application
+          requestAnimationFrame(function(){ imgEl.style.opacity = '1'; });
+        };
+        temp.src = nextSrc;
+      };
+      // Set initial state
+      imgEl.classList.add('fade-img');
+      imgEl.style.opacity = '1';
+      // Ensure first image is from list
+      if (images[0]) imgEl.src = images[0];
+      // Start rotation
+      setInterval(next, intervalMs || 3500);
+    }
+
     // Feature images on Home using Option A: assets/img/featured/{key}.webp
-    // Falls back to CONFIG.featuredImages[key], then leaves existing src.
+    // Falls back to CONFIG.featuredImages[key], unless a carousel is configured.
     ['living','kitchen','bedroom','study'].forEach(function (key) {
       var el = document.querySelector('[data-feature="' + key + '"]');
       if (!el) return;
+
+      // If a carousel is defined for this key, initialize and skip static image handling
+      if (cfg.carousels && Array.isArray(cfg.carousels[key]) && cfg.carousels[key].length) {
+        // Ensure accessible alt text
+        if (!el.getAttribute('alt')) {
+          el.setAttribute('alt', key.charAt(0).toUpperCase() + key.slice(1) + ' photos');
+        }
+        el.setAttribute('loading', 'lazy');
+        initFadeCarousel(el, cfg.carousels[key], 3500);
+        return;
+      }
+
       var featuredPath = 'assets/img/featured/' + key + '.webp';
       var setAlt = function () {
         if (!el.getAttribute('alt')) {

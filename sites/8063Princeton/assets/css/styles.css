@@ -35,6 +35,9 @@ img { max-width: 100%; height: auto; display: block; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* Simple fade-in for carousel images */
+.fade-img { transition: opacity 400ms ease-in-out; }
+
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 .container { width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 var(--space-5); }

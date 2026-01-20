@@ -7,6 +7,18 @@ window.CONFIG = {
   location: "Naples, FL",
   formUrl: "https://forms.gle/your-booking-form-placeholder",
   email: "hello@example.com",
+  // Optional carousels for feature cards on Home
+  // Provide an array of image paths to rotate through.
+  carousels: {
+    living: [
+      "assets/img/gallery/living.webp",
+      "assets/img/gallery/pool-1.webp",
+      "assets/img/gallery/pool-2.webp",
+      "assets/img/gallery/sunset.webp",
+      "assets/img/gallery/sunset-2.webp",
+      "assets/img/gallery/sunset-3.webp"
+    ]
+  },
   // Optional: choose images for the feature cards on Home
   // Update these paths to point to your preferred photos
   featuredImages: {
