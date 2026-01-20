@@ -5,7 +5,7 @@
 window.CONFIG = {
   propertyName: "8063 Princeton Dr",
   location: "Naples, FL",
-  formUrl: "https://forms.gle/your-booking-form-placeholder",
+  formUrl: "https://forms.gle/dKZLo3GfrL7FByxj7",
   email: "hello@example.com",
   // Optional carousels for feature cards on Home
   // Provide an array of image paths to rotate through.
