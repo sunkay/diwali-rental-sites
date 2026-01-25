@@ -7,6 +7,12 @@ window.CONFIG = {
   location: "Naples, FL",
   formUrl: "https://forms.gle/dKZLo3GfrL7FByxj7",
   email: "hello@example.com",
+  // Optional: if set, the site will show a native booking form
+  // in the modal and POST to this endpoint (serverless/API).
+  // Leave blank to continue using the embedded Google Form only.
+  bookingApiUrl: "",
+  // Default notification email (the backend should ultimately own this)
+  notifyEmail: "naplesrental8063@gmail.com",
   // Optional carousels for feature cards on Home
   // Provide an array of image paths to rotate through.
   carousels: {

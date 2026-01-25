@@ -45,6 +45,7 @@
   function initBookingModal(cfg) {
     var formUrl = cfg.formUrl;
     var hasForm = !!formUrl && !/your-booking-form-placeholder/i.test(formUrl);
+    var apiUrl = (cfg.bookingApiUrl || '').trim();
     var ctas = document.querySelectorAll('.js-book-btn');
     if (!ctas.length) return;
 
@@ -76,18 +77,125 @@
 
     var body = document.createElement('div');
     body.className = 'modal-body';
-    var iframe = document.createElement('iframe');
-    iframe.className = 'modal-iframe';
-    iframe.setAttribute('title', 'Booking form');
-    if (hasForm) iframe.src = computeEmbedUrl(formUrl);
     var loader = document.createElement('div');
     loader.style.display = 'grid';
     loader.style.placeItems = 'center';
     loader.style.height = '50vh';
-    loader.innerHTML = '<div class="muted">Loading form…</div>';
+    loader.innerHTML = '<div class="muted">Loading…</div>';
     body.appendChild(loader);
-    body.appendChild(iframe);
-    iframe.addEventListener('load', function(){ loader.style.display = 'none'; });
+
+    var usingNativeForm = !!apiUrl;
+
+    if (usingNativeForm) {
+      loader.style.display = 'none';
+      var form = document.createElement('form');
+      form.className = 'form';
+      form.setAttribute('novalidate', '');
+      form.innerHTML = [
+        '<div class="form-grid">',
+        '  <div class="row">',
+        '    <div class="field">',
+        '      <label for="f-name">Full name</label>',
+        '      <input id="f-name" name="name" class="input" required />',
+        '    </div>',
+        '    <div class="field">',
+        '      <label for="f-email">Email</label>',
+        '      <input id="f-email" name="email" type="email" class="input" required />',
+        '    </div>',
+        '  </div>',
+        '  <div class="row">',
+        '    <div class="field">',
+        '      <label for="f-phone">Phone</label>',
+        '      <input id="f-phone" name="phone" class="input" required />',
+        '      <div class="help">Include country/area code</div>',
+        '    </div>',
+        '    <div class="field">',
+        '      <label for="f-guests">Guests</label>',
+        '      <input id="f-guests" name="guests" type="number" min="1" max="12" class="input" value="2" required />',
+        '    </div>',
+        '  </div>',
+        '  <div class="row">',
+        '    <div class="field">',
+        '      <label for="f-checkin">Check-in</label>',
+        '      <input id="f-checkin" name="checkIn" type="date" class="input" required />',
+        '    </div>',
+        '    <div class="field">',
+        '      <label for="f-checkout">Check-out</label>',
+        '      <input id="f-checkout" name="checkOut" type="date" class="input" required />',
+        '    </div>',
+        '  </div>',
+        '  <div class="field">',
+        '    <label for="f-flex">Are your dates flexible?</label>',
+        '    <select id="f-flex" name="flexibility" class="select">',
+        '      <option value="No">No</option>',
+        '      <option value="±1 day">±1 day</option>',
+        '      <option value="±3 days">±3 days</option>',
+        '      <option value="Flexible">Flexible</option>',
+        '    </select>',
+        '  </div>',
+        '  <div class="field">',
+        '    <label for="f-msg">Message for host (optional)</label>',
+        '    <textarea id="f-msg" name="message" class="textarea" placeholder="Any details you’d like to share"></textarea>',
+        '  </div>',
+        '  <div class="field" hidden>',
+        '    <label for="f-company">Company</label>',
+        '    <input id="f-company" name="company" class="input" />',
+        '  </div>',
+        '  <div class="help">Payments are currently cash or check only. Request does not confirm a booking.</div>',
+        '  <div class="actions">',
+        '    <button type="submit" class="btn btn-primary">Send Request</button>',
+        '    <a class="btn" href="', hasForm ? formUrl : 'book.html', '" target="_blank" rel="noopener">Use Google Form</a>',
+        '  </div>',
+        '  <div id="f-status" class="help" aria-live="polite"></div>',
+        '</div>'
+      ].join('');
+      body.appendChild(form);
+
+      function val(id){ var el = form.querySelector(id); return el ? el.value.trim() : ''; }
+      function setStatus(msg, cls){ var s=form.querySelector('#f-status'); s.className='help ' + (cls||''); s.textContent=msg; }
+      function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+      form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        setStatus('Sending…');
+        // Basic validation
+        var payload = {
+          property: cfg.propertyName || 'Property',
+          name: val('#f-name'),
+          email: val('#f-email'),
+          phone: val('#f-phone'),
+          guests: val('#f-guests'),
+          checkIn: val('#f-checkin'),
+          checkOut: val('#f-checkout'),
+          flexibility: val('#f-flex'),
+          message: val('#f-msg'),
+          honeypot: val('#f-company')
+        };
+        if (!payload.name || !validEmail(payload.email) || !payload.phone || !payload.checkIn || !payload.checkOut) {
+          setStatus('Please complete required fields (name, email, phone, dates).', 'error');
+          return;
+        }
+        fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function(r){
+          if (!r.ok) throw new Error('Request failed: ' + r.status);
+          setStatus('Thanks! Your request has been sent. We will follow up shortly.', 'success');
+          form.reset();
+        }).catch(function(err){
+          console.error(err);
+          setStatus('Could not send right now. You can also use the Google Form link.', 'error');
+        });
+      });
+    } else {
+      // Fallback to embedded Google Form
+      var iframe = document.createElement('iframe');
+      iframe.className = 'modal-iframe';
+      iframe.setAttribute('title', 'Booking form');
+      if (hasForm) iframe.src = computeEmbedUrl(formUrl);
+      body.appendChild(iframe);
+      iframe.addEventListener('load', function(){ loader.style.display = 'none'; });
+    }
 
     var footer = document.createElement('div');
     footer.className = 'modal-footer';
