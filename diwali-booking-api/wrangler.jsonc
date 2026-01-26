@@ -1,29 +1,24 @@
 {
-  // Wrangler configuration for Cloudflare Worker
-  // Name: diwali-booking-api
   "name": "diwali-booking-api",
   "main": "src/index.js",
   "compatibility_date": "2024-01-30",
 
-  // Route the worker to the custom domain/path
-  // Make sure the zone and custom domain are set up in Cloudflare
   "routes": [
     { "pattern": "api.diwali.group", "custom_domain": true }
   ],
 
-  // Outbound Email (Email Routing) binding
-  // The sender identity must be configured/verified in Cloudflare dashboard
-  "send_email": [
-    { "name": "BOOKING_EMAIL" }
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "diwali_bookings",
+      "database_id": "ee49d169-3a04-4537-8354-2c0933f05c3f"
+    }
   ],
 
-  // Non-secret environment variables
   "vars": {
-    // Comma-separated recipients or a single email; can be overridden per env
-    "NOTIFY_TO": "replace-with-destination@example.com",
-    // Allowed CORS origin for the site
-    "ALLOWED_ORIGIN": "https://sunkay.github.io",
-    // Expected sender (identity must be verified in Cloudflare Email Routing)
-    "SENDER_EMAIL": "noreply@diwali.group"
+    "ALLOWED_ORIGINS": "https://princeton.diwali.group,https://diwali-rentals.pages.dev,https://sunkay.github.io",
+    "SENDER_EMAIL": "noreply@diwali.group",
+    "NOTIFY_TO": "diwali.synllc@gmail.com"
   }
 }
+

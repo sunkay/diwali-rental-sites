@@ -14,9 +14,8 @@
   function wireCTAs(formUrl) {
     var ctas = document.querySelectorAll('.js-book-btn');
     ctas.forEach(function (btn) {
-      // Always point CTAs to local book.html for a stable entry point.
-      // book.html will redirect to CONFIG.formUrl or show a fallback.
-      btn.setAttribute('href', 'book.html');
+      // Keep the link inert; the modal handler will intercept clicks.
+      btn.setAttribute('href', '#');
       btn.removeAttribute('target');
       btn.removeAttribute('rel');
     });
@@ -97,31 +96,37 @@
         '    <div class="field">',
         '      <label for="f-name">Full name</label>',
         '      <input id="f-name" name="name" class="input" required />',
+        '      <div class="error-msg" id="err-name"></div>',
         '    </div>',
         '    <div class="field">',
         '      <label for="f-email">Email</label>',
         '      <input id="f-email" name="email" type="email" class="input" required />',
+        '      <div class="error-msg" id="err-email"></div>',
         '    </div>',
         '  </div>',
         '  <div class="row">',
         '    <div class="field">',
         '      <label for="f-phone">Phone</label>',
         '      <input id="f-phone" name="phone" class="input" required />',
+        '      <div class="error-msg" id="err-phone"></div>',
         '      <div class="help">Include country/area code</div>',
         '    </div>',
         '    <div class="field">',
         '      <label for="f-guests">Guests</label>',
         '      <input id="f-guests" name="guests" type="number" min="1" max="12" class="input" value="2" required />',
+        '      <div class="error-msg" id="err-guests"></div>',
         '    </div>',
         '  </div>',
         '  <div class="row">',
         '    <div class="field">',
         '      <label for="f-checkin">Check-in</label>',
         '      <input id="f-checkin" name="checkIn" type="date" class="input" required />',
+        '      <div class="error-msg" id="err-checkin"></div>',
         '    </div>',
         '    <div class="field">',
         '      <label for="f-checkout">Check-out</label>',
         '      <input id="f-checkout" name="checkOut" type="date" class="input" required />',
+        '      <div class="error-msg" id="err-checkout"></div>',
         '    </div>',
         '  </div>',
         '  <div class="field">',
@@ -141,24 +146,64 @@
         '    <label for="f-company">Company</label>',
         '    <input id="f-company" name="company" class="input" />',
         '  </div>',
+        '  <div class="field">',
+        '    <div class="cf-turnstile" data-sitekey="', (cfg.turnstileSiteKey || ''), '" data-callback="onTurnstileToken"></div>',
+        '    <div class="error-msg" id="err-ts"></div>',
+        '  </div>',
         '  <div class="help">Payments are currently cash or check only. Request does not confirm a booking.</div>',
         '  <div class="actions">',
         '    <button type="submit" class="btn btn-primary">Send Request</button>',
-        '    <a class="btn" href="', hasForm ? formUrl : 'book.html', '" target="_blank" rel="noopener">Use Google Form</a>',
         '  </div>',
         '  <div id="f-status" class="help" aria-live="polite"></div>',
         '</div>'
       ].join('');
       body.appendChild(form);
 
+      // Load Turnstile script once if a site key is provided
+      try {
+        var tsKey = (cfg.turnstileSiteKey || '').trim();
+        if (tsKey && !window.__turnstileScriptLoaded) {
+          var s = document.createElement('script');
+          s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+          s.async = true; s.defer = true;
+          document.head.appendChild(s);
+          window.__turnstileScriptLoaded = true;
+        }
+        window.onTurnstileToken = function(token){
+          var el = form.querySelector('#err-ts');
+          if (el) el.textContent = '';
+        };
+      } catch (_) {}
+
       function val(id){ var el = form.querySelector(id); return el ? el.value.trim() : ''; }
       function setStatus(msg, cls){ var s=form.querySelector('#f-status'); s.className='help ' + (cls||''); s.textContent=msg; }
+      function setFieldInvalid(id, ok, errId, msg){ var el=form.querySelector(id); if(!el) return; el.classList.toggle('invalid', !ok); var e=form.querySelector(errId); if(e){ e.textContent = ok ? '' : msg; } }
+      function validDates(ci, co){ if(!ci||!co) return false; try{ return new Date(ci) < new Date(co); }catch(_){ return false; } }
+
+      function runLiveValidation(){
+        var nameOk = !!val('#f-name'); setFieldInvalid('#f-name', nameOk, '#err-name', 'Name is required');
+        var emailStr = val('#f-email'); var emailOk = validEmail(emailStr); setFieldInvalid('#f-email', emailOk, '#err-email', 'Enter a valid email');
+        var phoneOk = !!val('#f-phone'); setFieldInvalid('#f-phone', phoneOk, '#err-phone', 'Phone is required');
+        var guestsOk = (parseInt(val('#f-guests'),10) >= 1); setFieldInvalid('#f-guests', guestsOk, '#err-guests', 'At least 1 guest');
+        var ci = val('#f-checkin'), co = val('#f-checkout');
+        var datesOk = validDates(ci, co);
+        setFieldInvalid('#f-checkin', !!ci, '#err-checkin', 'Required');
+        setFieldInvalid('#f-checkout', !!co && datesOk, '#err-checkout', datesOk ? '' : 'Must be after check-in');
+        return nameOk && emailOk && phoneOk && guestsOk && datesOk;
+      }
+
+      form.addEventListener('input', runLiveValidation);
+      form.addEventListener('change', runLiveValidation);
       function validEmail(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
+      function slugify(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''); }
       form.addEventListener('submit', function(ev){
         ev.preventDefault();
         setStatus('Sending…');
         // Basic validation
+        var tokenEl = form.querySelector('input[name="cf-turnstile-response"]');
+        var tsToken = tokenEl ? tokenEl.value.trim() : '';
         var payload = {
+          site: (cfg.siteSlug || cfg.propertySlug || slugify(cfg.propertyName || '')) || 'unknown',
           property: cfg.propertyName || 'Property',
           name: val('#f-name'),
           email: val('#f-email'),
@@ -168,10 +213,17 @@
           checkOut: val('#f-checkout'),
           flexibility: val('#f-flex'),
           message: val('#f-msg'),
+          turnstileToken: tsToken,
           honeypot: val('#f-company')
         };
-        if (!payload.name || !validEmail(payload.email) || !payload.phone || !payload.checkIn || !payload.checkOut) {
-          setStatus('Please complete required fields (name, email, phone, dates).', 'error');
+        if (!runLiveValidation()) {
+          setStatus('Please correct the highlighted fields.', 'error');
+          return;
+        }
+        if (!payload.turnstileToken) {
+          setFieldInvalid('#f-name', true, '#err-name', '');
+          var errTs = form.querySelector('#err-ts'); if (errTs) errTs.textContent = 'Please complete the verification.';
+          setStatus('Please complete the verification.', 'error');
           return;
         }
         fetch(apiUrl, {
@@ -179,12 +231,12 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }).then(function(r){
-          if (!r.ok) throw new Error('Request failed: ' + r.status);
+          if (!r.ok) return r.json().catch(function(){ return { error: 'Request failed' }; }).then(function(j){ throw new Error((j && j.error) || ('Request failed: ' + r.status)); });
           setStatus('Thanks! Your request has been sent. We will follow up shortly.', 'success');
           form.reset();
         }).catch(function(err){
           console.error(err);
-          setStatus('Could not send right now. You can also use the Google Form link.', 'error');
+          setStatus('Could not send right now. ' + (err && err.message ? err.message : ''), 'error');
         });
       });
     } else {
@@ -202,20 +254,24 @@
     var note = document.createElement('div');
     note.className = 'modal-note';
     note.textContent = 'Payments are currently cash or check only. A booking is not confirmed until we review and follow up.';
-    var openNew = document.createElement('a');
-    openNew.href = hasForm ? formUrl : 'book.html';
-    openNew.target = '_blank';
-    openNew.rel = 'noopener noreferrer';
-    openNew.className = 'link';
-    openNew.textContent = 'Open full form';
-    footer.appendChild(note); footer.appendChild(openNew);
+    footer.appendChild(note);
+    // Only show an external link if a Google Form URL is still configured.
+    if (hasForm) {
+      var openNew = document.createElement('a');
+      openNew.href = formUrl;
+      openNew.target = '_blank';
+      openNew.rel = 'noopener noreferrer';
+      openNew.className = 'link';
+      openNew.textContent = 'Open full form';
+      footer.appendChild(openNew);
+    }
 
     modal.appendChild(header); modal.appendChild(body); modal.appendChild(footer);
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);
 
     function openModal() {
-      if (!hasForm) { window.location.href = 'book.html'; return; }
+      if (!hasForm && !usingNativeForm) { window.location.href = 'book.html'; return; }
       backdrop.style.display = 'grid';
       backdrop.removeAttribute('aria-hidden');
       document.body.classList.add('modal-open');

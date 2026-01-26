@@ -1,0 +1,28 @@
+name: Deploy Cloudflare Pages (Wrangler)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Wrangler
+        run: npm i -g wrangler@4
+
+      - name: Deploy with Wrangler
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            wrangler pages deploy sites/8063Princeton --project-name=diwali-rentals --branch=main
+          else
+            # Preview deployments use the branch name for isolation
+            wrangler pages deploy sites/8063Princeton --project-name=diwali-rentals --branch="${{ github.ref_name }}"
+          fi

@@ -5,12 +5,17 @@
 window.CONFIG = {
   propertyName: "8063 Princeton Dr",
   location: "Naples, FL",
-  formUrl: "https://forms.gle/dKZLo3GfrL7FByxj7",
+  formUrl: "",
   email: "hello@example.com",
   // Optional: if set, the site will show a native booking form
   // in the modal and POST to this endpoint (serverless/API).
   // Leave blank to continue using the embedded Google Form only.
-  bookingApiUrl: "",
+  bookingApiUrl: "https://api.diwali.group/v1/bookings",
+  // Turnstile site key for verification (test key by default; replace with your real key)
+  // Get one from Cloudflare Turnstile and set it here for production.
+  turnstileSiteKey: "1x00000000000000000000AA",
+  // Slug identifier for this property (used by the API)
+  siteSlug: "8063-princeton-dr",
   // Default notification email (the backend should ultimately own this)
   notifyEmail: "naplesrental8063@gmail.com",
   // Optional carousels for feature cards on Home

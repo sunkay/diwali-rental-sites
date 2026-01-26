@@ -37,3 +37,19 @@ GitHub Pages is static and cannot send emails itself. To have the site send emai
 6. The booking modal will switch from the embedded Google Form to the native form and POST to your Worker, which emails the request.
 
 Note: Keep the Google Form URL in `formUrl` as a fallback and for data collection if desired.
+
+### API v1 (Cloudflare Worker)
+
+- Base: `https://api.diwali.group/v1`
+- Public Create: `POST /bookings` — Body: `{ site, name, email, phone, startDate|checkIn, endDate|checkOut, message?, turnstileToken, ... }`
+  - Requires valid Turnstile token; stores extras like `guests`/`flexibility` in `extras` JSON.
+- Admin List: `GET /bookings?site=<slug>&limit=50&offset=0&includeDeleted=false` — Requires Cloudflare Access or Basic Auth.
+- Admin Read: `GET /bookings/:id` — Requires auth.
+- Admin Update: `PATCH /bookings/:id` — Body: `{ status?, message? }` — Requires auth.
+- Admin Delete: `DELETE /bookings/:id` — Soft-deletes by setting `status='deleted'` — Requires auth.
+
+Multi-site support: each booking has a `site` slug (e.g., `8063-princeton-dr`). Set `siteSlug` in each site's `assets/js/config.js` so the frontend includes it when creating a booking.
+
+### Ops + Agent Guide
+- Operations runbook: see `docs/OPERATIONS.md` for end-to-end steps, verification, and security notes.
+- Agent guide: see `AGENTS.md` for how to work in this repo (safety, workflow, commands).
