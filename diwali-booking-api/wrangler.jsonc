@@ -19,6 +19,30 @@
     "ALLOWED_ORIGINS": "https://princeton.diwali.group,https://diwali-rentals.pages.dev,https://sunkay.github.io",
     "SENDER_EMAIL": "noreply@diwali.group",
     "NOTIFY_TO": "diwali.synllc@gmail.com"
+  },
+
+  // Environment-specific overrides (staging example)
+  "env": {
+    "staging": {
+      "name": "diwali-booking-api-staging",
+      // Map a staging custom domain in Cloudflare DNS first (e.g., CNAME to Workers)
+      "routes": [
+        { "pattern": "staging-api.diwali.group", "custom_domain": true }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "diwali_bookings_staging",
+          // Replace with your staging D1 Database ID
+          "database_id": "REPLACE_WITH_STAGING_D1_ID"
+        }
+      ],
+      "vars": {
+        // Include only staging frontends here
+        "ALLOWED_ORIGINS": "https://princeton-staging.diwali.group,https://diwali-rentals.pages.dev",
+        "SENDER_EMAIL": "noreply@diwali.group",
+        "NOTIFY_TO": "diwali.synllc@gmail.com"
+      }
+    }
   }
 }
-

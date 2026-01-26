@@ -108,3 +108,44 @@ Next Steps
 - Add admin HTML filters (by `site`, date range, status).
 - Set up staging domain and environment vars for non-prod.
 
+Staging Environment
+- Goal: Isolate testing from production using a separate Worker route, D1 database, and secrets.
+
+1) Create staging D1
+   - `wrangler d1 create diwali_bookings_staging`
+   - Copy the staging Database ID from output or dashboard.
+
+2) Configure staging env (wrangler)
+   - Edit `diwali-booking-api/wrangler.jsonc` → `env.staging`:
+     - Set `name` to `diwali-booking-api-staging` (already done in sample).
+     - Set `routes[0].pattern` to your staging domain, e.g., `staging-api.diwali.group`.
+     - Replace `database_id` with your staging D1 ID.
+     - Set `vars.ALLOWED_ORIGINS` to your staging front-ends (e.g., `https://princeton-staging.diwali.group`).
+
+3) Map staging domain (dashboard)
+   - Cloudflare DNS → add `staging-api.diwali.group` (proxied, orange cloud) pointing to Workers custom domain as per Cloudflare guides.
+   - Workers & Pages → your Worker → ensure route `staging-api.diwali.group` will be picked up on deploy.
+
+4) Apply staging migrations (remote)
+   - `cd diwali-booking-api`
+   - `wrangler d1 migrations apply diwali_bookings --env staging --remote`
+
+5) Set staging secrets
+   - `wrangler secret put TURNSTILE_SECRET_KEY --env staging`
+   - `wrangler secret put ADMIN_USER --env staging`
+   - `wrangler secret put ADMIN_PASS --env staging`
+
+6) Deploy staging Worker
+   - `wrangler deploy --env staging`
+
+7) Verify staging
+   - Preflight (allowed origin):
+     - `curl -i -X OPTIONS "https://staging-api.diwali.group/v1/bookings" -H "Origin: https://princeton-staging.diwali.group" -H "Access-Control-Request-Method: POST"`
+     - Expect `access-control-allow-origin` echoes the staging origin.
+   - Create (Turnstile test token):
+     - `curl -X POST "https://staging-api.diwali.group/v1/bookings" -H "Content-Type: application/json" -d '{"site":"8063-princeton-dr","name":"Test","email":"t@example.com","phone":"555","startDate":"2026-02-01","endDate":"2026-02-02","turnstileToken":"1x0000000000000000000000000000000AA"}'`
+   - Admin list (Basic):
+     - `curl -u <user>:<pass> "https://staging-api.diwali.group/v1/bookings?site=8063-princeton-dr&limit=5"`
+
+8) Frontend staging (optional)
+   - Point a staging site’s `bookingApiUrl` to `https://staging-api.diwali.group/v1/bookings` and set a staging Turnstile site key.
